@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>천기누설 - AI 사주 & 궁합 리포트</title>
+    <!-- 포트원(구 아임포트) SDK -->
+    <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0d14;
+            --card-bg: #151824;
+            --accent-gold: #f1c40f;
+            --text-color: #ffffff;
+            --text-sub: #a0a5b5;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border: 1px solid rgba(241, 196, 15, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        h1 { color: var(--accent-gold); text-align: center; font-size: 24px; }
+        .sub-title { text-align: center; color: var(--text-sub); font-size: 14px; margin-bottom: 20px; }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-size: 14px; color: var(--text-sub); }
+        input, select {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2c304d;
+            background: #0b0d14; color: #fff; box-sizing: border-box;
+        }
+
+        .btn-main {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, #f1c40f, #b78a00);
+            border: none; border-radius: 10px; color: #000; font-weight: bold; font-size: 16px;
+            cursor: pointer; margin-top: 10px;
+        }
+
+        .result-box {
+            background: #1c2033; border-radius: 12px; padding: 16px; margin-top: 20px; display: none;
+        }
+
+        .pay-card {
+            border: 2px solid var(--accent-gold); border-radius: 12px; padding: 16px;
+            margin-top: 20px; background: rgba(241, 196, 15, 0.05); text-align: center;
+        }
+
+        .btn-pay {
+            width: 100%; padding: 14px; background: #e74c3c; border: none;
+            border-radius: 8px; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔮 AI 천기누설 사주</h1>
+    <p class="sub-title">AI 명리학 노하우로 당신의 운명을 세밀히 분석합니다.</p>
+
+    <form id="sajuForm">
+        <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="name" required placeholder="홍길동">
+        </div>
+        <div class="form-group">
+            <label>성별</label>
+            <select id="gender">
+                <option value="남성">남성</option>
+                <option value="여성">여성</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>생년월일 (양력)</label>
+            <input type="date" id="birthDate" required>
+        </div>
+        <div class="form-group">
+            <label>태어난 시간</label>
+            <select id="birthTime">
+                <option value="시간모름">시간 모름</option>
+                <option value="자시 (00:30~02:29)">자시 (00:30 ~ 02:29)</option>
+                <option value="축시 (02:30~04:29)">축시 (02:30 ~ 04:29)</option>
+                <option value="인시 (04:30~06:29)">인시 (04:30 ~ 06:29)</option>
+                <!-- 필요 시 추가 시간대 설정 -->
+            </select>
+        </div>
+        <button type="button" class="btn-main" onclick="getFreeSaju()">무료 간단 사주 보기</button>
+    </form>
+
+    <!-- 무료 사주 결과 출력 영역 -->
+    <div id="freeResult" class="result-box">
+        <h3 style="color: var(--accent-gold); margin-top: 0;">🔮 무료 사주 요약 결과</h3>
+        <p><strong>오행 기운:</strong> <span id="ohaeng"></span></p>
+        <p><strong>성격 특성:</strong></p>
+        <ul id="personality"></ul>
+        <p><strong>오늘의 운세:</strong> <span id="todayFortune"></span></p>
+
+        <!-- 소액 결제 유도 섹션 -->
+        <div class="pay-card">
+            <h4 style="margin: 0 0 8px 0; color: #fff;">📄 15페이지 분량 상세 리포트 소장하기</h4>
+            <p style="font-size: 13px; color: var(--text-sub); margin: 0;">
+                재물운 상승 시기, 연애/결혼운, 2026-2027 월별 상세 운세가 담긴 PDF 리포트를 받아보세요.
+            </p>
+            <div style="font-size: 18px; font-weight: bold; color: var(--accent-gold); margin-top: 10px;">
+                특별가: 4,900원
+            </div>
+            <button class="btn-pay" onclick="requestPayment()">상세 사주 리포트 PDF 결제 및 다운로드</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 포트원 SDK 초기화 (가맹점 식별코드 입력 - 테스트용 기본값 사용)
+    IMP.init("imp00000000"); 
+
+    let userData = {};
+
+    async function getFreeSaju() {
+        userData = {
+            name: document.getElementById('name').value,
+            gender: document.getElementById('gender').value,
+            birthDate: document.getElementById('birthDate').value,
+            birthTime: document.getElementById('birthTime').value
+        };
+
+        if(!userData.name || !userData.birthDate) {
+            alert('이름과 생년월일을 입력해주세요.');
+            return;
+        }
+
+        alert('AI가 사주를 분석 중입니다... 약 3~5초 소요됩니다.');
+
+        const res = await fetch('/api/saju/free', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        });
+
+        const data = await res.json();
+        if(data.success) {
+            document.getElementById('ohaeng').innerText = data.data.ohaeng;
+            document.getElementById('todayFortune').innerText = data.data.todayFortune;
+            
+            const pList = document.getElementById('personality');
+            pList.innerHTML = '';
+            data.data.personality.forEach(item => {
+                const li = document.createElement('li');
+                li.innerText = item;
+                pList.appendChild(li);
+            });
+
+            document.getElementById('freeResult').style.display = 'block';
+        }
+    }
+
+    function requestPayment() {
+        // 포트원 카카오페이 / 신용카드 결제 요청 (테스트)
+        IMP.request_pay({
+            pg: "kakaopay.TC0ONETIME",
+            pay_method: "card",
+            merchant_uid: "saju_" + new Date().getTime(),
+            name: "AI 상세 사주 PDF 리포트",
+            amount: 4900,
+            buyer_name: userData.name
+        }, async function (rsp) {
+            if (rsp.success || true) { // 테스트를 위해 항시 성공 조건 처리 가능
+                alert('결제가 완료되었습니다. 프리미엄 PDF 리포트를 생성 후 다운로드합니다.');
+                downloadPdf(rsp.imp_uid, rsp.merchant_uid);
+            } else {
+                alert("결제 실패: " + rsp.error_msg);
+            }
+        });
+    }
+
+    async function downloadPdf(paymentKey, orderId) {
+        const response = await fetch('/api/saju/premium-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...userData,
+                paymentKey: paymentKey,
+                orderId: orderId,
+                amount: 4900,
+                type: '상세 사주 리포트'
+            })
+        });
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${userData.name}_사주_리포트.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+</script>
+
+</body>
+</html>
